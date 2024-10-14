@@ -6,7 +6,7 @@ from typing import List
 wait_random = __import__('0-basic_async_syntax').wait_random
 
 
-async def wait_n(n: int, max_delay: int = 10) -> List[float]:
+async def wait_n(n: int, max_delay: int) -> List[float]:
     """
     An async routine that takes in 2 int arguments,
     should return the list of all the delays in ascending order.
