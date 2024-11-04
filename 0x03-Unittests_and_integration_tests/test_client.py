@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """The module for testing client"""
 import unittest
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 from client import GithubOrgClient
-from unittest.mock import patch, PropertyMock
+from unittest.mock import patch, PropertyMock, Mock
+from fixtures import TEST_PAYLOAD
 
 
 class TestGithubOrgClient(unittest.TestCase):
@@ -70,3 +71,42 @@ class TestGithubOrgClient(unittest.TestCase):
         """Method to unit-test GithubOrgClient.has_license."""
         output = GithubOrgClient.has_license(repo, license_key)
         self.assertEqual(output, expected)
+
+    @parameterized_class(
+        ("org_payload", "repos_payload", "expected_repos", "apache2_repos"),
+        TEST_PAYLOAD
+    )
+    class TestIntegrationGithubOrgClient(unittest.TestCase):
+        """Class for Integration tests"""
+        @classmethod
+        def setupClass(cls):
+            """
+            Mock requests.get to return example payloads found in the fixtures
+            """
+            cls.get_patcher = patch('requests.get')
+            cls.mock_get = cls.get_patcher.start()
+
+            def get_response(url):
+                if url == "https://api.github.com/orgs/test-org":
+                    return Mock(**{'json.return_value': cls.org_payload})
+                elif url == cls.org_payload["repos_url", ""]:
+                    return Mock(**{'json.return_value': cls.repos_payload})
+                return Mock(**{'json.return_value': {}})
+            cls.mock_get.side_effect = get_response
+
+        def test_public_repos(self):
+            """Method to test public_repos integration"""
+            test_class = GithubOrgClient('test')
+            self.assertEqual(test_class.public_repos(), self.expected_repos)
+
+        def test_public_repos_with_license(self):
+            """Test public_repos integration with license"""
+            test_class = GithubOrgClient('test')
+            self.assertEqual(test_class.public_repos(license="apache-2.0"),
+                             self.apache2_repos)
+
+        @classmethod
+        def tearDownClass(cls):
+            """Stop the patcher."""
+            if hasattr(cls, 'get_patcher'):
+                cls.get_patcher.stop()
